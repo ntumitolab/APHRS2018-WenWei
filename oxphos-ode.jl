@@ -5,6 +5,8 @@ Default parameter values from Kembro et al. and Gauthier et al.
 Some are adjusted by An-chi Wei to prevent complex number
 =#
 using Parameters
+using NaNMath
+
 include("common.jl")
 include("concentrations.jl")
 
@@ -55,11 +57,6 @@ function c1_rates(nadh, nad, Q_n, QH2_n, dpsi, h_m, sox_m,
                   K34, K43, K47, K74, K57, K75, K42, ρC1,
                   MT_PROT=1, E_LEAK_C1=1, C1_INHIB=1, h_i=1E-4, O2=6E-3)
     C1_CONC = ρC1 * MT_PROT
-	# A hack to wrokaround negative concentration
-	nadh = max(0.0, nadh)
-	nad = max(0.0, nad)
-	Q_n = max(0.0, Q_n)
-	QH2_n = max(0.0, QH2_n)
     a = _ra(dpsi - dpsi_B)
     a12 = K12 * h_m^2
     a21 = K21
@@ -67,13 +64,13 @@ function c1_rates(nadh, nad, Q_n, QH2_n, dpsi, h_m, sox_m,
     a56 = K56
     a61 = K61 / a
     a16 = K16 * a
-    a23 = K23 * sqrt(nadh)
+    a23 = K23 * NaNMath.sqrt(nadh)
     a32 = K32
     a34 = K34
-    a43 = K43 * sqrt(nad)
-    a47 = C1_INHIB * K47 * sqrt(Q_n * h_m)
+    a43 = K43 * NaNMath.sqrt(nad)
+    a47 = C1_INHIB * K47 * NaNMath.sqrt(Q_n * h_m)
     a74 = K74
-    a57 = C1_INHIB * K57 * sqrt(QH2_n)
+    a57 = C1_INHIB * K57 * NaNMath.sqrt(QH2_n)
     a75 = K75
     a42 = K42 * E_LEAK_C1 * O2
     a24 = K42 * O2 * E_ROS * sox_m
@@ -133,7 +130,7 @@ adapted from Demin et al. (2000)
 function vsdh(Q_n, QH2_n, suc, fum, oaa, KI_OAA, VMAX, KM_Q, FAC_SUC, C2_INHIB=1)
     f_q = _mm(_mm(Q_n, QH2_n), KM_Q)
     f_oaa = _mm(KI_OAA, oaa)
-    f_suc = FAC_SUC * sqrt(suc / fum)
+    f_suc = FAC_SUC * NaNMath.sqrt(suc / fum)
     vSDH = VMAX * C2_INHIB * f_suc * f_oaa * f_q
 end
 
@@ -237,7 +234,7 @@ function _vaf1(pi_m, adp_m, atp_m, KEQ)
 	vaf1 = KEQ * atp_m / (pi_m * adp_m)
 end
 
-# Relative electrochemical activit of ATP <-> ADP + Pi, corrected by dissociation
+# Relative electrochemical activity of ATP <-> ADP + Pi, corrected by dissociation
 function _vaf1(h_m, pi_m, adp_m, atp_m, mg_m, KEQ)
     # Dissociation
     (adp3_m, hadp_m, _, poly_adp_m) = breakdown_adp(adp_m, h_m, mg_m)
@@ -255,7 +252,7 @@ function _c5_rates(ΔμH, vaf1, pC5::C5Params, MT_PROT=1, C5_INHIB=1)
 	return (vATPase, vHu)
 end
 
-# ATP synthase (cpmplex V) and related rates from Kembro et. al (2013)
+# ATP synthase (complex V) and related rates from Kembro et. al (2013)
 # vATPase: ATP production rate
 # vHu : protons flux through ATP synthase
 function c5_rates(dpsi, ΔμH, h_m, pi_m, adp_m, conc::Concentrations, pC5::C5Params, MT_PROT=1, C5_INHIB=1)

@@ -1,3 +1,5 @@
+using NaNMath
+
 # Faraday constant (C/mol)
 const F = 96485
 # Temperature (Kelvin)
@@ -55,7 +57,7 @@ _suc_poly(h) = _poly(h, KA_SUC)
 _h2o_poly(h) = _poly(h, KA_H2O)
 
 # Nernst potentials (in mV)
-_nernst(x_out, x_in, z=1) = RT_F / z * log(x_out / x_in)
+_nernst(x_out, x_in, z=1) = RT_F / z * NaNMath.log(x_out / x_in)
 _ena(na_o, na_i) = _nernst(na_o, na_i, 1)
 _enak(k_o, na_o, k_i, na_i, P_NA_K) = _nernst(na_o * P_NA_K + k_o, na_i * P_NA_K + k_i, 1)
 _ek(k_o, k_i) = _nernst(k_o, k_i, 1)

@@ -395,5 +395,3 @@ rateMap = Dict((k => i) for (i, k) in enumerate(rateSymbols))
 
 # Ignore the intermediate rates
 rhs(u, p, t) = ecme_dox(u, p, t)[1:length(u)]
-
-reject_step(u, p, t) = any( x -> (x < 0.0), @view u[3:end])

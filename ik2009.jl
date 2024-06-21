@@ -1,4 +1,5 @@
 using Parameters
+
 # Potassium channels
 @with_kw struct IKParams
     k_o = 5.4

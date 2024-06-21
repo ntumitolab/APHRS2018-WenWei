@@ -1,4 +1,5 @@
 using Parameters
+using NaNMath
 include("common.jl")
 # ATP-dependent K channel (KATP) parameters
 @with_kw struct KATPParams
@@ -30,7 +31,7 @@ Scalar version
 function ikatp(vm, eK, na_i, atp_i, adp_i, mg_i, KM_MG, KM_NA, δMG, δNA, IMAX)
     f_mg = _mm(KM_MG, mg_i * _ra(2 * δMG * vm))
     f_na = _hills(KM_NA, na_i * _ra(δNA * vm), 2)
-    km_atp = 35.8e-3 + 17.9 * 1000^(-0.44) * adp_i^0.56
+    km_atp = 35.8e-3 + 17.9 * 1000^(-0.44) * NaNMath.pow(adp_i, 0.56)
     h = 1.9 + 0.74 * exp(-adp_i)
     f_atp = _hills(km_atp, atp_i, h)
     iKatp = IMAX * f_mg * f_na * f_atp * (vm - eK)
