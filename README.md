@@ -1,3 +1,3 @@
-# ecme-rirr-dox
+# APHRS 2018
 
-Cardiomyocyte electrophysiology and bioenergetics model with doxorubicin perturbation.(WIP)
+Source code of doxorubicin cardiomyocyte model for APHRS 2018 in Taipei. Presenter: Wen-Wei Tseng.
