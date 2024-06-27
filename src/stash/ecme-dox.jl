@@ -1,9 +1,6 @@
 # The simplified model of ECME-RIRR plus ROS generation by ETC ODE system
 using Parameters, StaticArrays
 
-include("common.jl")
-include("cicr16.jl")
-include("ck.jl")
 include("force.jl")
 include("ik2009.jl")
 include("ina.jl")
@@ -102,9 +99,9 @@ conc = Concentrations(nadph_i=1.0,
                       pi_m=2.0,
                       mg_m=0.4,
                       mg_i=3.1,
-                      AXP_M_T=1.5,
-                      NAD_T=10.0,
-                      AXP_I_T=8.0,
+                      ΣA_m=1.5,
+                      ΣNAD_m=10.0,
+                      ΣA_i=8.0,
                       O2=6E-3)
 
 @with_kw struct Params
@@ -142,7 +139,7 @@ conc = Concentrations(nadph_i=1.0,
     V_JSR = 0.16E-6  # Junctional SR Volume (μL)
     V_SS = 0.495E-9  # Total subspace Volume (μL)
     V_MYO = 25.84E-6  # Cytoplasm Volume (μL)
-    V_MITO = 15.89E-6  # Mitochiondrial Volume (μL)
+    V_MITO = 15.89E-6  # Mitochondrial Volume (μL)
     A_CAP = 1.534E-4  # Cell capacitance area (cm²)
     A_CAP_V_MYO_F = A_CAP / (V_MYO * F)
     V_MITO_V_MYO = V_MITO / V_MYO
@@ -179,12 +176,12 @@ function ecme_dox(u, p, t)
      fes_ox, cytc1_ox, cytc_ox) = u
 
     @unpack conc = p
-	@unpack ca_o, na_o, k_o, AXP_I_T, h_i, h_m, mg_i, mg_m, ΔpH, FAC_PH, O2, nadph_i, pi_m, AXP_I_T = conc
+	@unpack ca_o, na_o, k_o, ΣA_i, h_i, h_m, mg_i, mg_m, ΔpH, FAC_PH, O2, nadph_i, pi_m, ΣA_i = conc
     vfrt = vm * F_RT
     evfrtm1 = expm1(vfrt)
 	ΔμH = _ΔμH(dpsi, ΔpH)  # proton motive force
-    atp_i = AXP_I_T - adp_i
-    atp_ic = AXP_I_T - adp_ic
+    atp_i = ΣA_i - adp_i
+    atp_ic = ΣA_i - adp_ic
 
     # CICR
     @unpack pLCC, pRYR, R_TR, R_XFER = p
@@ -203,7 +200,7 @@ function ecme_dox(u, p, t)
     jTrpn = d_ltr_ca + d_htr_ca
 
     # CK shuttle
-    (d_atp_in_ck, d_atp_ic, d_crp_i, d_crp_ic) = ck_system(atp_i, atp_ic, crp_i, crp_ic, pCK, AXP_I_T)
+    (d_atp_in_ck, d_atp_ic, d_crp_i, d_crp_ic) = ck_system(atp_i, atp_ic, crp_i, crp_ic, pCK, ΣA_i)
 
     # Other ion channels
     @unpack G_CAB, G_NAB = p.pBG
@@ -395,3 +392,5 @@ rateMap = Dict((k => i) for (i, k) in enumerate(rateSymbols))
 
 # Ignore the intermediate rates
 rhs(u, p, t) = ecme_dox(u, p, t)[1:length(u)]
+
+reject_step(u, p, t) = any( x -> (x < 0.0), @view u[3:end])

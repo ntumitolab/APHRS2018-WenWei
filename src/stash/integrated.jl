@@ -1,8 +1,5 @@
 # The main workhorse
-using Plots
-using DifferentialEquations
-using ProgressLogging
-using Sundials
+using Plots, DifferentialEquations
 include("ecme-dox.jl")
 
 u0 = collect(u0_tup)
@@ -18,12 +15,27 @@ param = Params(
   pSODi = SODParams(ET=1.43E-3 * 0.65),
   BCL=1000.0)
 
+using JLD2
+JLD2.@load "pacing.jld2" solPacing
+
 @unpack A_CAP_V_MYO_F = param
 
 tspan = (0.0, 10000.0)
 prob = ODEProblem(rhs, u0, tspan, param)
 
-solPacing = solve(prob, CVODE_BDF(); dt=0.01, progress=true, tstops=tspan[1]:1000.0:tspan[end])
+integrator = init(prob, Rodas5(); reltol=1e-9, abstol=1e-9, dt=0.01, progress=true, tstops=tspan[1]:1000.0:tspan[end])
+for (u,t) in tuples(integrator)
+    (vm, dpsi, m_na, h_na, j_na, x_k, na_i, k_i, ca_i, ca_jsr, ca_nsr, ca_ss, ltr_ca, htr_ca,
+     po1, po2, pc2, c0, c1, c2, c3, c4, o, cca0, cca1, cca2, cca3, y_ca, p0, p1, p2, p3, n1,
+     adp_i, adp_ic, crp_i, crp_ic, ca_m, adp_m, nadh, isoc, akg, scoa, suc, fum, mal, oaa,
+     sox_m, sox_i, h2o2_i, gsh_i, Q_n, Qdot_n, QH2_n, QH2_p, Qdot_p, Q_p, b1, b2, b3, b4,
+     fes_ox, cytc1_ox, cytc_ox) = u
+    @show t, vm, dpsi
+    @show adp_i, adp_m
+    @show Q_n, QH2_n
+end
+
+solPacing = solve(prob, Rodas5(); reltol=1e-9, abstol=1e-9, dt=0.01, progress=true, tstops=tspan[1]:1000.0:tspan[end])
 pVolt = plot(solPacing, vars=(0, nameLUT[:vm]), label="Membrane Potential", lw=1)
 plot!(pVolt, solPacing, vars=(0, nameLUT[:dpsi]), label="Mitochondrial Potential", lw=1, xlabel="time(ms)", ylabel = "Voltage (mV)")
 savefig(pVolt, "voltage.png")
@@ -77,6 +89,8 @@ plot(sol, vars=(0, [nameLUT[:sox_i], nameLUT[:sox_m]]), lw=1, label=["sox_i" "so
 plot(sol, vars=(0, nameLUT[:sox_i]), lw=1, label=["sox_i"])
 plot(sol, vars=(0, nameLUT[:gsh_i]), lw=1)
 
+using JLD2
+@save "ROS-oscillation.jld2" sol
 
 # Get the rates
 plot(t-> ecme_dox(sol(t), param, t)[end-15], sol.t[1], sol.t[end])

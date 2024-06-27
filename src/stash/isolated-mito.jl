@@ -1,8 +1,7 @@
 # The main workhorse
 using Plots, DifferentialEquations, StaticArrays
-using DataFrames
-using ProgressLogging
-Plots.pythonplot()
+using JLD2
+pyplot()
 
 include("ecme-dox.jl")
 u0 = collect(u0_tup)
@@ -60,17 +59,18 @@ paramDOX = Params(
 prob = ODEProblem(isolated_model, u0, tspan, paramDOX)
 doxSol = solve(prob, Rodas5(); reltol=1e-9, abstol=1e-9, dt=0.01, progress=true, dtmax=3000.0)
 
+JLD2.@load "mito.jld2" doxSol
 
-pDpsi = plot(doxSol, idxs=(0, nameLUT[:dpsi]), label="Mitochondrial Potential", lw=1, legend=:false, xaxis = ("time (ms)"), yaxis=("Voltage (mV)"))
+pDpsi = plot(doxSol, vars=(0, nameLUT[:dpsi]), label="Mitochondrial Potential", lw=1, legend=:false, xaxis = ("time (ms)"), yaxis=("Voltage (mV)"))
 savefig(pDpsi, "dpsi.png")
 
 pATPase = plot(t-> ecme_dox(doxSol(t), paramDOX, t)[rateMap[:vATPase]], doxSol.t[1], doxSol.t[end],
      label="vATPase", ylims=(-0.003, 0.0005), xaxis = ("time (ms)"), yaxis=("ATP synthase rate (mM/ms)"), legend=:false)
 savefig(pATPase, "atpase.png")
 
-pROS = plot(doxSol, idxs=(0, [nameLUT[:sox_i], nameLUT[:sox_m]]), lw=1, label=["superoxide_cyto" "superoxide_mito"], xaxis = ("time (ms)"), yaxis=("Concentration (mM)"))
+pROS = plot(doxSol, vars=(0, [nameLUT[:sox_i], nameLUT[:sox_m]]), lw=1, label=["superoxide_cyto" "superoxide_mito"], xaxis = ("time (ms)"), yaxis=("Concentration (mM)"))
 savefig(pROS, "ros-burst.png")
-plot!(pROS, doxSol, idxs=(0, [nameLUT[:Q_n], nameLUT[:QH2_n], nameLUT[:Qdot_p], nameLUT[:Q_p], nameLUT[:QH2_p]]), lw=1, label=["Q_n" "QH2_n" "Qdot_p" "Q_p" "QH2_p"], legend=:right, xaxis = ("time (ms)"))
+plot!(pROS, doxSol, vars=(0, [nameLUT[:Q_n], nameLUT[:QH2_n], nameLUT[:Qdot_p], nameLUT[:Q_p], nameLUT[:QH2_p]]), lw=1, label=["Q_n" "QH2_n" "Qdot_p" "Q_p" "QH2_p"], legend=:right, xaxis = ("time (ms)"))
 savefig(pROS, "ros-burst-with-Q.png")
 
 plot()
@@ -80,15 +80,18 @@ plot!(t-> ecme_dox(doxSol(t), param, t)[rateMap[:vROSC3]], doxSol.t[1], doxSol.t
 ylims!(-1.1e-5, 3e-5)
 savefig("vROS.png")
 
+using JLD2
+@save "mito.jld2" doxSol
+
 # Other variables you could see
-plot(doxSol, idxs=(0, [nameLUT[:Q_n], nameLUT[:QH2_n]]), lw=1, label=["Q_n" "QH2_n"])
-plot(doxSol, idxs=(0, nameLUT[:nadh]), label="[NADH]", lw=1, legend=:bottomleft)
-plot(doxSol, idxs=(0, nameLUT[:suc]), label="[SUC]", lw=1, legend=:topleft)
+plot(doxSol, vars=(0, [nameLUT[:Q_n], nameLUT[:QH2_n]]), lw=1, label=["Q_n" "QH2_n"])
+plot(doxSol, vars=(0, nameLUT[:nadh]), label="[NADH]", lw=1, legend=:bottomleft)
+plot(doxSol, vars=(0, nameLUT[:suc]), label="[SUC]", lw=1, legend=:topleft)
 plot!(t-> ecme_dox(doxSol(t), paramDOX, t)[rateMap[:vANT]], doxSol.t[1], doxSol.t[end], label="vANT")
-plot(doxSol, idxs=(0, nameLUT[:adp_m]), label="[ADP]m", lw=1)
-plot(doxSol, idxs=(0, [nameLUT[:Q_n], nameLUT[:QH2_n]]), lw=1, label=["Q_n" "QH2_n"])
-plot(doxSol, idxs=(0, [nameLUT[:b1], nameLUT[:b2], nameLUT[:b3], nameLUT[:b4]]), lw=1)
-plot(doxSol, idxs=(0, [nameLUT[:fes_ox], nameLUT[:cytc1_ox], nameLUT[:cytc_ox]]), lw=1, label=["fes_ox" "cytc1_ox" "cytc_ox"])
-plot(doxSol, idxs=(0, [nameLUT[:sox_i], nameLUT[:sox_m]]), lw=1, label=["sox_i" "sox_m"])
-plot(doxSol, idxs=(0, nameLUT[:sox_i]), lw=1, label=["sox_i"])
-plot(doxSol, idxs=(0, nameLUT[:gsh_i]), lw=1)
+plot(doxSol, vars=(0, nameLUT[:adp_m]), label="[ADP]m", lw=1)
+plot(doxSol, vars=(0, [nameLUT[:Q_n], nameLUT[:QH2_n]]), lw=1, label=["Q_n" "QH2_n"])
+plot(doxSol, vars=(0, [nameLUT[:b1], nameLUT[:b2], nameLUT[:b3], nameLUT[:b4]]), lw=1)
+plot(doxSol, vars=(0, [nameLUT[:fes_ox], nameLUT[:cytc1_ox], nameLUT[:cytc_ox]]), lw=1, label=["fes_ox" "cytc1_ox" "cytc_ox"])
+plot(doxSol, vars=(0, [nameLUT[:sox_i], nameLUT[:sox_m]]), lw=1, label=["sox_i" "sox_m"])
+plot(doxSol, vars=(0, nameLUT[:sox_i]), lw=1, label=["sox_i"])
+plot(doxSol, vars=(0, nameLUT[:gsh_i]), lw=1)
